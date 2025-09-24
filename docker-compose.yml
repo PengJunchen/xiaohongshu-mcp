@@ -2,9 +2,7 @@ version: '3'
 
 services:
   xiaohongshu-mcp:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: pengjunchen/xiaohongshu-mcp:latest
     container_name: xiaohongshu-mcp
     restart: unless-stopped
     ports:
@@ -17,6 +15,6 @@ services:
       - DEBUG=false
     volumes:
       # 持久化cookie存储
-      - ./docker-data/cookies:/data/cookies
+      - ./cookies:/data/cookies
     # 如果需要在启动时传递额外参数，可以在这里添加
     # command: -headless=true
