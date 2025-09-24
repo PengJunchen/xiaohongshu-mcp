@@ -27,7 +27,7 @@ FROM debian:bullseye-slim
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 安装Chrome浏览器和依赖
+# 安装Chrome浏览器和所有必要依赖
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -51,17 +51,16 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon0 \
     libxrandr2 \
     xdg-utils \
-    libu2f-udev \
     libvulkan1 \
     libxss1 \
     xvfb \
+    curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装Chrome浏览器（使用更新的方法，避免使用已弃用的apt-key）
-RUN wget -q -O /usr/share/keyrings/google-chrome-keyring.gpg https://dl.google.com/linux/linux_signing_key.pub \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
+# 安装Chromium作为替代方案（更可靠，在Debian仓库中）
+RUN apt-get update && apt-get install -y chromium \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建数据目录
@@ -89,11 +88,11 @@ Xvfb :99 -screen 0 1280x1024x24 -ac &\n\
 # 检查是否需要登录\n\
 if [ ! -f "$COOKIE_FILE_PATH" ] || [ "$FORCE_LOGIN" = "true" ]; then\n\
   echo "需要登录，启动登录流程..."\n\
-  ./login -bin /usr/bin/google-chrome\n\
+  ./login -bin /usr/bin/chromium\n\
 fi\n\
 \n\
 # 启动主应用\n\
-exec ./xiaohongshu-mcp -bin /usr/bin/google-chrome "$@"\n\
+exec ./xiaohongshu-mcp -bin /usr/bin/chromium "$@"\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 # 设置容器启动命令
