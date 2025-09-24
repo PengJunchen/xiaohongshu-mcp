@@ -1,13 +1,20 @@
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.24-bullseye AS builder
 
 WORKDIR /app
 
+# 设置GOPROXY以解决可能的网络问题
+ENV GOPROXY=https://goproxy.cn,direct
+
 # 复制Go模块定义
 COPY go.mod go.sum ./
-RUN go mod download
+# 尝试下载依赖，如果失败则继续（后续会重试）
+RUN go mod download || true
 
 # 复制源代码
 COPY . .
+
+# 再次尝试下载依赖（确保所有依赖都已下载）
+RUN go mod tidy
 
 # 编译应用
 RUN CGO_ENABLED=0 GOOS=linux go build -o xiaohongshu-mcp .
@@ -50,9 +57,9 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装Chrome浏览器
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+# 安装Chrome浏览器（使用更新的方法，避免使用已弃用的apt-key）
+RUN wget -q -O /usr/share/keyrings/google-chrome-keyring.gpg https://dl.google.com/linux/linux_signing_key.pub \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
