@@ -3,7 +3,9 @@ name: Docker Build & Push
 on:
   push:
     branches: [ main ]
-  # 也可触发于 release、pull_request 等
+    tags: [ 'v*.*.*' ]  # 当推送版本标签时也触发
+  pull_request:
+    branches: [ main ]
 
 jobs:
   docker:
@@ -12,15 +14,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: pengjunchen/xiaohongshu-mcp
+          tags: |
+            type=semver,pattern={{version}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            latest
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: pengjunchen/xiaohongshu-mcpe:latest
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
